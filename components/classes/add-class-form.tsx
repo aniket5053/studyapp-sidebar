@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useApp } from "@/context/app-context"
+import { toast } from "react-hot-toast"
 
 // Predefined color options
 const colorOptions = [
@@ -26,26 +27,36 @@ export function AddClassForm() {
   const [className, setClassName] = useState("")
   const [classCode, setClassCode] = useState("")
   const [selectedColor, setSelectedColor] = useState(colorOptions[0])
+  const [validation, setValidation] = useState({ name: false, code: false })
   const { addClassWorkspace } = useApp()
   const router = useRouter()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (className && classCode) {
+    const missing = {
+      name: !className.trim(),
+      code: !classCode.trim()
+    }
+    setValidation(missing)
+
+    if (missing.name || missing.code) {
+      return
+    }
+
+    try {
       // Create new class
-      addClassWorkspace({
+      await addClassWorkspace({
         name: className,
         code: classCode,
         color: selectedColor,
-        initial: className.charAt(0),
-        tasks: 0,
-        files: [],
-        assignments: [],
       })
 
       // Navigate back to dashboard
       router.push("/")
+    } catch (error) {
+      console.error('Error submitting form:', error)
+      // Error is already handled in addClassWorkspace
     }
   }
 
@@ -66,8 +77,13 @@ export function AddClassForm() {
               id="class-name"
               placeholder="e.g., Mathematics"
               value={className}
-              onChange={(e) => setClassName(e.target.value)}
-              required
+              onChange={(e) => {
+                setClassName(e.target.value)
+                if (validation.name && e.target.value.trim()) {
+                  setValidation(prev => ({ ...prev, name: false }))
+                }
+              }}
+              className={validation.name ? "border-red-500 focus:ring-red-400 focus:border-red-400" : ""}
             />
           </div>
 
@@ -77,8 +93,13 @@ export function AddClassForm() {
               id="class-code"
               placeholder="e.g., MATH 101"
               value={classCode}
-              onChange={(e) => setClassCode(e.target.value)}
-              required
+              onChange={(e) => {
+                setClassCode(e.target.value)
+                if (validation.code && e.target.value.trim()) {
+                  setValidation(prev => ({ ...prev, code: false }))
+                }
+              }}
+              className={validation.code ? "border-red-500 focus:ring-red-400 focus:border-red-400" : ""}
             />
           </div>
 

@@ -46,6 +46,7 @@ export interface Database {
           id: string
           created_at: string
           name: string
+          code: string
           color: string
           user_id: string
         }
@@ -53,6 +54,7 @@ export interface Database {
           id?: string
           created_at?: string
           name: string
+          code: string
           color: string
           user_id: string
         }
@@ -60,6 +62,7 @@ export interface Database {
           id?: string
           created_at?: string
           name?: string
+          code?: string
           color?: string
           user_id?: string
         }

@@ -1,37 +1,50 @@
+/**
+ * FiltersBar Component
+ * 
+ * A toolbar component that provides filtering and sorting capabilities for tasks:
+ * - Date range filtering (Today, Tomorrow, Next Week, Next Month, Custom Range)
+ * - Class filtering
+ * - Task type filtering with color management
+ * - Sorting options (by date, title, or type)
+ * 
+ * The component includes interactive dropdowns and a custom date range picker.
+ * It also provides task type management features like color customization and deletion.
+ */
+
 "use client"
 
-import { ChevronDown, Calendar as CalendarIcon } from "lucide-react"
+import { ChevronDown, Calendar as CalendarIcon, Paintbrush, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format, addDays, addWeeks, addMonths, startOfDay, endOfDay } from "date-fns"
-import { capitalizeWords } from "../task-utils"
+import { capitalizeWords } from '../task-utils'
 
-interface TaskFiltersProps {
+interface FiltersBarProps {
   filterDateRange: { start: Date, end: Date } | null
   setFilterDateRange: (range: { start: Date, end: Date } | null) => void
   filterClass: string | null
   setFilterClass: (classId: string | null) => void
   filterType: string | null
   setFilterType: (type: string | null) => void
-  classes: any[]
+  classes: Array<{ id: string, name: string, color: string }>
   taskTypes: string[]
   typeColors: Record<string, string>
+  getTaskTypeColors: (type: string) => { bg: string, text: string }
+  setEditTypeColor: (type: string | null) => void
+  setTypeColorValue: (color: string) => void
+  setDeleteTypeWithTasks: (data: { type: string, count: number } | null) => void
+  setDeleteTypeConfirm: (type: string | null) => void
+  newTypeInput: string
+  setNewTypeInput: (input: string) => void
   sortBy: 'date' | 'title' | 'type'
   setSortBy: (sort: 'date' | 'title' | 'type') => void
   sortDirection: 'asc' | 'desc'
   setSortDirection: (direction: 'asc' | 'desc') => void
+  tasks: Array<{ id: string, type: string }>
 }
 
-/**
- * TaskFilters Component
- * Renders the filter controls for the task board
- */
-export function TaskFilters({
+export function FiltersBar({
   filterDateRange,
   setFilterDateRange,
   filterClass,
@@ -41,11 +54,20 @@ export function TaskFilters({
   classes,
   taskTypes,
   typeColors,
+  getTaskTypeColors,
+  setEditTypeColor,
+  setTypeColorValue,
+  setDeleteTypeWithTasks,
+  setDeleteTypeConfirm,
+  newTypeInput,
+  setNewTypeInput,
   sortBy,
   setSortBy,
   sortDirection,
-  setSortDirection
-}: TaskFiltersProps) {
+  setSortDirection,
+  tasks
+}: FiltersBarProps) {
+  // Helper function to get date range display text
   const getDateRangeText = () => {
     if (!filterDateRange) return 'Due date'
     const today = startOfDay(new Date())
@@ -69,6 +91,7 @@ export function TaskFilters({
 
   return (
     <div className="flex items-center gap-2 mb-4">
+      {/* Date range filter dropdown */}
       <Popover>
         <PopoverTrigger asChild>
           <Button 
@@ -83,6 +106,7 @@ export function TaskFilters({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-3" align="start">
           <div className="space-y-2">
+            {/* Quick date range options */}
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
@@ -131,6 +155,8 @@ export function TaskFilters({
                 Next month
               </Button>
             </div>
+
+            {/* Custom date range picker */}
             <div className="pt-2 border-t">
               <div className="text-xs text-slate-500 mb-2 px-1">Custom range</div>
               <Calendar
@@ -151,6 +177,8 @@ export function TaskFilters({
                 className="rounded-md border"
               />
             </div>
+
+            {/* Clear date filter button */}
             {filterDateRange && (
               <Button
                 variant="ghost"
@@ -165,6 +193,7 @@ export function TaskFilters({
         </PopoverContent>
       </Popover>
 
+      {/* Class filter dropdown */}
       <Popover>
         <PopoverTrigger asChild>
           <Button 
@@ -178,6 +207,7 @@ export function TaskFilters({
         </PopoverTrigger>
         <PopoverContent className="w-auto px-4 py-2" align="start">
           <div className="flex flex-col gap-1">
+            {/* All classes option */}
             <Button
               variant="ghost"
               size="sm"
@@ -186,6 +216,7 @@ export function TaskFilters({
             >
               All Classes
             </Button>
+            {/* Class list */}
             {classes.map((cls) => (
               <Button
                 key={cls.id}
@@ -206,6 +237,7 @@ export function TaskFilters({
         </PopoverContent>
       </Popover>
 
+      {/* Task type filter dropdown */}
       <Popover>
         <PopoverTrigger asChild>
           <Button 
@@ -219,6 +251,7 @@ export function TaskFilters({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-2" align="start">
           <div className="space-y-1">
+            {/* All types option */}
             <Button
               variant="ghost"
               size="sm"
@@ -227,28 +260,96 @@ export function TaskFilters({
             >
               All Types
             </Button>
+            {/* Task type list with color and delete options */}
             {taskTypes.map((type) => (
-              <Button
-                key={type}
-                variant="ghost"
-                size="sm"
-                className={`w-full justify-start ${filterType === type ? 'ring-2 ring-offset-2 ring-blue-400' : ''}`}
-                style={{
-                  backgroundColor: typeColors[type] || '#f5f5f5',
-                  color: '#000000',
-                  fontWeight: filterType === type ? 'bold' : 'normal',
-                }}
-                onClick={() => setFilterType(type)}
-              >
-                {capitalizeWords(type)}
-              </Button>
+              <div key={type} className="flex items-center gap-2 w-full">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`flex-1 w-full justify-start ${filterType === type ? 'ring-2 ring-offset-2 ring-blue-400' : ''}`}
+                  style={{
+                    backgroundColor: typeColors[type] || getTaskTypeColors(type).bg,
+                    color: '#000000',
+                    fontWeight: filterType === type ? 'bold' : 'normal',
+                  }}
+                  onClick={() => setFilterType(type)}
+                >
+                  {capitalizeWords(type)}
+                </Button>
+                {/* Color picker button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="p-1"
+                  onClick={e => {
+                    e.preventDefault();
+                    setEditTypeColor(type);
+                    setTypeColorValue(typeColors[type] || getTaskTypeColors(type).bg);
+                  }}
+                  aria-label={`Pick color for ${type}`}
+                >
+                  <Paintbrush className="h-4 w-4" />
+                </Button>
+                {/* Delete type button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="p-1 text-red-500 hover:text-red-700"
+                  onClick={e => {
+                    e.stopPropagation();
+                    const count = tasks.filter(t => t.type === type).length;
+                    if (count > 0) {
+                      setDeleteTypeWithTasks({ type, count });
+                    } else {
+                      setDeleteTypeConfirm(type);
+                    }
+                  }}
+                  aria-label={`Remove ${type} type`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             ))}
+
+            {/* Add new type input */}
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t">
+              <input
+                type="text"
+                value={newTypeInput}
+                onChange={e => setNewTypeInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const val = newTypeInput.trim().toLowerCase();
+                    if (val && !taskTypes.includes(val)) {
+                      setEditTypeColor(val);
+                      setTypeColorValue('#f5f5f5');
+                    }
+                  }
+                }}
+                placeholder="Add new type..."
+                className="flex-1 px-2 py-1 border rounded-md text-sm"
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  const val = newTypeInput.trim().toLowerCase();
+                  if (val && !taskTypes.includes(val)) {
+                    setEditTypeColor(val);
+                    setTypeColorValue('#f5f5f5');
+                  }
+                }}
+              >
+                Add
+              </Button>
+            </div>
           </div>
         </PopoverContent>
       </Popover>
 
-      <div className="flex-1" /> {/* Spacer */}
+      {/* Spacer */}
+      <div className="flex-1" />
 
+      {/* Sort options dropdown */}
       <Popover>
         <PopoverTrigger asChild>
           <Button 
@@ -278,6 +379,7 @@ export function TaskFilters({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-2" align="start">
           <div className="space-y-1">
+            {/* Sort by date option */}
             <Button
               variant="ghost"
               size="sm"
@@ -289,6 +391,7 @@ export function TaskFilters({
             >
               Date {sortBy === 'date' && (sortDirection === 'asc' ? '↑' : '↓')}
             </Button>
+            {/* Sort by title option */}
             <Button
               variant="ghost"
               size="sm"
@@ -300,6 +403,7 @@ export function TaskFilters({
             >
               Title {sortBy === 'title' && (sortDirection === 'asc' ? '↑' : '↓')}
             </Button>
+            {/* Sort by type option */}
             <Button
               variant="ghost"
               size="sm"

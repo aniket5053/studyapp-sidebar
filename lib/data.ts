@@ -40,6 +40,7 @@ export type Assignment = {
 export type Class = {
   id: string
   name: string
+  code: string
   color: string
   user_id: string
 }

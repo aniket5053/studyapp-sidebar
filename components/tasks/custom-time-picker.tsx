@@ -1,3 +1,18 @@
+/**
+ * CustomTimePicker Component
+ * 
+ * A custom time picker component that provides:
+ * - Hour selection (12-hour format)
+ * - Minute selection
+ * - AM/PM toggle
+ * - Scrollable lists for hours and minutes
+ * - Smooth animations and transitions
+ * - Keyboard accessibility
+ * 
+ * The component uses a custom UI design with scrollable lists
+ * instead of the traditional time picker interface.
+ */
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"

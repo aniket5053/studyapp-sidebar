@@ -1,14 +1,17 @@
--- Create classes table first
+-- Drop and recreate classes table
+drop table if exists public.classes cascade;
 create table public.classes (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text not null,
+  code text not null,
   color text not null,
   user_id uuid references auth.users(id) on delete cascade not null,
   unique(name, user_id)
 );
 
--- Create tasks table
+-- Drop and recreate tasks table
+drop table if exists public.tasks cascade;
 create table public.tasks (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -20,7 +23,8 @@ create table public.tasks (
   user_id uuid references auth.users(id) on delete cascade not null
 );
 
--- Create task_types table
+-- Drop and recreate task_types table
+drop table if exists public.task_types cascade;
 create table public.task_types (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -90,4 +94,4 @@ create policy "Users can delete their own task types"
 create index classes_user_id_idx on public.classes(user_id);
 create index tasks_user_id_idx on public.tasks(user_id);
 create index tasks_date_idx on public.tasks(date);
-create index task_types_user_id_idx on public.task_types(user_id); 
+create index task_types_user_id_idx on public.task_types(user_id);

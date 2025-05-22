@@ -1,7 +1,22 @@
+/**
+ * Tasks Board Types and Component
+ * 
+ * This file contains:
+ * - Type definitions for the task management system
+ * - The main TasksBoard component that serves as the entry point
+ * 
+ * The types define the structure for:
+ * - Task board properties
+ * - Task statuses
+ * - Task types
+ * - Task validation
+ * - Type deletion operations
+ */
+
 import type { Task } from "@/lib/data"
 import { UnifiedTaskBoard } from "./unified-task-board"
 
-// Types
+// Type definitions for the task management system
 export interface UnifiedTaskBoardProps {
   title?: string
   showAddButton?: boolean
@@ -37,6 +52,10 @@ export interface RecentlyDeletedType {
   timer: NodeJS.Timeout | null
 }
 
+/**
+ * Main TasksBoard component that serves as the entry point for the task management system
+ * @returns UnifiedTaskBoard component with default title "Tasks"
+ */
 export function TasksBoard() {
   return <UnifiedTaskBoard title="Tasks" />
 }
