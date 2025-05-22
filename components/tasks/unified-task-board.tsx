@@ -20,7 +20,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ChevronDown, Plus, X, Calendar as CalendarIcon, Paintbrush, Pencil } from "lucide-react"
+import { ChevronDown, Plus, X, Calendar as CalendarIcon, Paintbrush, Pencil, Settings } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,7 +28,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useApp } from "@/context/app-context"
-import type { Task } from "@/lib/data"
+import type { Task, Class } from "@/lib/data"
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import {
   Popover,
@@ -49,7 +49,8 @@ import {
   updateTask as updateTaskInDB, 
   createTaskType, 
   updateTaskTypeColor, 
-  removeTaskType 
+  removeTaskType,
+  archiveCompletedTasks
 } from '@/lib/task-operations'
 import { CustomTimePicker } from './custom-time-picker'
 import type { 
@@ -66,6 +67,9 @@ import { FiltersBar } from './components/FiltersBar'
 import { TaskColumn } from './components/TaskColumn'
 import { AddTaskDialog } from './components/AddTaskDialog'
 import { EditTaskDialog } from './components/EditTaskDialog'
+import { ArchivedTasksView } from './components/ArchivedTasksView'
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
+import { supabase } from '@/lib/supabase'
 
 
 // Main Component
@@ -130,7 +134,70 @@ export function UnifiedTaskBoard({ title = "Tasks", showAddButton = true, showFi
   const [isLoading, setIsLoading] = useState(true)
 
   // Get app context
-  const { classes, tasks, addTask, updateTask, deleteTask, getTasksByStatus, updateClass, user, setTasks } = useApp()
+  const { classes, tasks, addTask, updateTask, deleteTask, getTasksByStatus, updateClass, user, setTasks, setClasses } = useApp()
+
+  // State management for archived tasks view
+  const [showArchived, setShowArchived] = useState(false)
+
+  // Load tasks and classes
+  const loadData = async () => {
+    try {
+      if (!user?.id) return
+
+      // Load tasks
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', user.id)
+      
+      if (tasksError) throw tasksError
+      setTasks(tasksData as Task[])
+
+      // Load classes
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('user_id', user.id)
+      
+      if (classesError) throw classesError
+      setClasses(classesData as Class[])
+    } catch (error) {
+      console.error('Error loading data:', error)
+      toast.error('Failed to load data')
+    }
+  }
+
+  // Check for tasks to archive periodically
+  useEffect(() => {
+    if (!user?.id) return
+
+    const checkAndArchiveTasks = async () => {
+      try {
+        if (!user?.id) return
+        const archivedTasks = await archiveCompletedTasks(user.id)
+        if (archivedTasks.length > 0) {
+          // Reload tasks after archiving
+          await loadData()
+          toast.success(`Archived ${archivedTasks.length} completed tasks`)
+        }
+      } catch (error) {
+        console.error('Error archiving tasks:', error)
+        if (error instanceof Error) {
+          toast.error(error.message)
+        } else {
+          toast.error('Failed to archive tasks')
+        }
+      }
+    }
+
+    // Check immediately on mount
+    checkAndArchiveTasks()
+
+    // Then check every hour
+    const interval = setInterval(checkAndArchiveTasks, 60 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [user])
 
   // Load task types and their colors on component mount
   useEffect(() => {
@@ -245,7 +312,7 @@ export function UnifiedTaskBoard({ title = "Tasks", showAddButton = true, showFi
         type: newTask.type!,
         status: newTask.status!,
         date: newTask.date!,
-        class_id: newTask.class_id,
+        class_id: newTask.class_id || '',
         user_id: user.id
       })
 
@@ -518,6 +585,29 @@ export function UnifiedTaskBoard({ title = "Tasks", showAddButton = true, showFi
         >
           {title}
         </motion.h1>
+        <div className="flex items-center gap-2">
+          {showAddButton && (
+            <Button onClick={() => setIsAddTaskOpen(true)}>
+              Add Task
+            </Button>
+          )}
+          <Drawer open={showArchived} onOpenChange={setShowArchived}>
+            <DrawerTrigger asChild>
+              <Button variant="outline">
+                View Archived Tasks
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="max-w-lg ml-auto">
+              <DialogTitle className="sr-only">Archived Tasks</DialogTitle>
+              <ArchivedTasksView
+                tasks={tasks}
+                typeColors={typeColors}
+                getTaskTypeColors={getTaskTypeColors}
+                classes={classes}
+              />
+            </DrawerContent>
+          </Drawer>
+        </div>
       </div>
 
       {isLoading ? (

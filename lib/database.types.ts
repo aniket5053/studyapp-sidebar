@@ -19,6 +19,7 @@ export interface Database {
           date: string
           class_id: string
           user_id: string
+          archived: boolean
         }
         Insert: {
           id?: string
@@ -29,6 +30,7 @@ export interface Database {
           date: string
           class_id: string
           user_id: string
+          archived?: boolean
         }
         Update: {
           id?: string
@@ -39,6 +41,7 @@ export interface Database {
           date?: string
           class_id?: string
           user_id?: string
+          archived?: boolean
         }
       }
       classes: {
@@ -64,6 +67,29 @@ export interface Database {
           name?: string
           code?: string
           color?: string
+          user_id?: string
+        }
+      }
+      user_preferences: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          archive_delay_days: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          archive_delay_days?: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          archive_delay_days?: number
           user_id?: string
         }
       }

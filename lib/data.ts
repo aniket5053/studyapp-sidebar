@@ -12,12 +12,14 @@ export type ClassWorkspace = {
 
 export type Task = {
   id: string
+  created_at: string
   title: string
   type: string
-  status: 'todo' | 'in-progress' | 'done' | 'not-started' | 'to-submit'
+  status: 'not-started' | 'in-progress' | 'to-submit' | 'done'
   date: string
   class_id: string
   user_id: string
+  archived: boolean
 }
 
 export type File = {

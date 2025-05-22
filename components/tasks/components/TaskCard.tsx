@@ -7,7 +7,7 @@
  * - Task type with color coding
  * - Class assignment with color
  * - Status indicators (Overdue, Due Soon)
- * - Edit and delete actions
+ * - Edit and delete actions (only for non-archived tasks)
  * 
  * The component includes animations for smooth transitions and
  * hover effects for better user interaction.
@@ -30,14 +30,30 @@ interface TaskCardProps {
   onEdit: (task: Task) => void
   onDelete: (taskId: string) => void
   highlight?: 'due-soon' | 'overdue' | null
+  isArchived?: boolean
 }
 
-export function TaskCard({ task, typeColors, classes, onEdit, onDelete, highlight }: TaskCardProps) {
+export function TaskCard({ task, typeColors, classes, onEdit, onDelete, highlight, isArchived }: TaskCardProps) {
   // Helper function to get class color
   const getClassColor = (classId: string) => {
     const cls = classes.find(c => c.id === classId)
     return cls ? cls.color : '#000'
   }
+
+  // Format date and time
+  const formatDateTime = (dateString: string) => {
+    try {
+      const date = parseISO(dateString)
+      return {
+        date: format(date, 'MMMM d, yyyy'),
+        time: format(date, 'h:mm a')
+      }
+    } catch (e) {
+      return { date: dateString, time: '' }
+    }
+  }
+
+  const { date, time } = formatDateTime(task.date)
 
   return (
     <motion.div
@@ -54,7 +70,8 @@ export function TaskCard({ task, typeColors, classes, onEdit, onDelete, highligh
       className={
         "bg-white rounded-lg border border-slate-200 p-3 hover:border-slate-300 transition-colors relative group" +
         (highlight === 'due-soon' ? ' ring-2 ring-yellow-400 border-yellow-300' : '') +
-        (highlight === 'overdue' ? ' ring-2 ring-red-400 border-red-300' : '')
+        (highlight === 'overdue' ? ' ring-2 ring-red-400 border-red-300' : '') +
+        (isArchived ? ' opacity-75' : '')
       }
     >
       {/* Task title and date section */}
@@ -63,16 +80,8 @@ export function TaskCard({ task, typeColors, classes, onEdit, onDelete, highligh
           <h3 className="font-medium text-foreground">{task.title}</h3>
           {task.date && (
             <span className="text-xs text-slate-500 mt-1 block">
-              {format(parseISO(task.date), 'MMMM d, yyyy')}
-              {(() => {
-                const d = parseISO(task.date);
-                const h = d.getHours();
-                const m = d.getMinutes();
-                if (!isNaN(h) && !isNaN(m)) {
-                  return ` • ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-                }
-                return '';
-              })()}
+              {date}
+              {time && ` • ${time}`}
             </span>
           )}
         </div>
@@ -110,31 +119,33 @@ export function TaskCard({ task, typeColors, classes, onEdit, onDelete, highligh
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="absolute top-2 right-2 flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(task);
-          }}
-        >
-          <Pencil className="h-3 w-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(task.id);
-          }}
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
+      {/* Action buttons - only show for non-archived tasks */}
+      {!isArchived && (
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(task);
+            }}
+          >
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(task.id);
+            }}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
     </motion.div>
   )
 } 

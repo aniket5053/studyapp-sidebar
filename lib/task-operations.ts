@@ -23,9 +23,9 @@ export async function loadTaskTypes(userId: string): Promise<Record<string, stri
 export async function createTask(taskData: {
   title: string
   type: string
-  status: string
+  status: Task['status']
   date: string
-  class_id?: string
+  class_id: string
   user_id: string
 }): Promise<Task> {
   // First check if task type exists
@@ -49,10 +49,14 @@ export async function createTask(taskData: {
     if (typeError) throw typeError
   }
 
-  // Create the task
+  // Create the task with all required fields
   const { data: task, error } = await supabase
     .from('tasks')
-    .insert(taskData)
+    .insert({
+      ...taskData,
+      archived: false,
+      created_at: new Date().toISOString()
+    })
     .select()
     .single()
   
@@ -78,13 +82,27 @@ export async function deleteTasksByType(type: string): Promise<void> {
   if (error) throw error
 }
 
+export async function getUserPreferences(userId: string) {
+  const { data, error } = await supabase
+    .from('user_preferences')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 export async function updateTask(
   taskId: string, 
   taskData: Partial<Task>
 ): Promise<Task> {
+  // Ensure we don't update the created_at field
+  const { created_at, ...updateData } = taskData
+  
   const { data: task, error } = await supabase
     .from('tasks')
-    .update(taskData)
+    .update(updateData)
     .eq('id', taskId)
     .select()
     .single()
@@ -160,5 +178,54 @@ export async function restoreTaskType(type: string, userId: string, tasks: Task[
       })))
     
     if (tasksError) throw tasksError
+  }
+}
+
+export async function archiveCompletedTasks(userId: string | undefined) {
+  if (!userId) return []
+
+  try {
+    // Get user preferences
+    const preferences = await getUserPreferences(userId)
+    const archiveDelay = preferences?.archive_delay_days || 2 // Default to 2 days if not set
+
+    // Calculate the cutoff date
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - archiveDelay)
+
+    // Find completed tasks that are older than the cutoff date
+    const { data: tasksToArchive, error: fetchError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'done')
+      .eq('archived', false)
+      .lt('date', cutoffDate.toISOString())
+
+    if (fetchError) {
+      console.error('Error fetching tasks to archive:', fetchError)
+      throw new Error(`Failed to fetch tasks: ${fetchError.message}`)
+    }
+
+    // Archive the tasks
+    if (tasksToArchive && tasksToArchive.length > 0) {
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update({ archived: true })
+        .in('id', tasksToArchive.map(task => task.id))
+
+      if (updateError) {
+        console.error('Error updating tasks:', updateError)
+        throw new Error(`Failed to update tasks: ${updateError.message}`)
+      }
+    }
+
+    return tasksToArchive || []
+  } catch (error) {
+    console.error('Error archiving tasks:', error)
+    if (error instanceof Error) {
+      throw new Error(`Failed to archive tasks: ${error.message}`)
+    }
+    throw new Error('Failed to archive tasks: Unknown error')
   }
 } 

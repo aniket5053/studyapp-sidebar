@@ -21,6 +21,7 @@ interface AppContextType {
   user: User | null
   signOut: () => Promise<void>
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
+  setClasses: React.Dispatch<React.SetStateAction<Class[]>>
   activeClassId: string | null
   setActiveClassId: React.Dispatch<React.SetStateAction<string | null>>
   getClassById: (id: string) => Class | undefined
@@ -225,6 +226,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       user,
       signOut,
       setTasks,
+      setClasses,
       activeClassId,
       setActiveClassId,
       getClassById,

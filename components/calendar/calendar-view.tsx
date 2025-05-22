@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { ChevronLeft, ChevronRight, Plus, Check, Pencil } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Check, Pencil, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +16,7 @@ import { formatDate, format12HourTime, capitalizeWords } from "@/components/task
 import { parseISO, isBefore, addHours } from 'date-fns'
 import { AddTaskDialog } from "@/components/tasks/components/AddTaskDialog"
 import { EditTaskDialog } from "@/components/tasks/components/EditTaskDialog"
+import { useToast } from "@/components/ui/use-toast"
 
 // Represents the props for the DayContent component in react-day-picker v8
 type DayContentProps = {
@@ -31,6 +32,8 @@ export function CalendarView() {
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [month, setMonth] = useState<Date | undefined>(undefined)
   const [isAddEventOpen, setIsAddEventOpen] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const { toast } = useToast()
   const [newEvent, setNewEvent] = useState<Partial<Task>>({
     title: "",
     type: "event",
@@ -55,6 +58,7 @@ export function CalendarView() {
   const [editValidation, setEditValidation] = useState({ title: false, type: false, date: false })
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const statusInputRef = useRef<HTMLInputElement | null>(null)
+  const isInitialSync = useRef(true)
 
   // Set initial date and month on client only
   useEffect(() => {
@@ -174,6 +178,72 @@ export function CalendarView() {
     setIsEditTaskOpen(false)
   }
 
+  // Add sync function
+  const syncCalendar = async (isManualSync = false) => {
+    try {
+      setIsSyncing(true)
+      const startDate = new Date()
+      startDate.setHours(0, 0, 0, 0) // Start from beginning of today
+      const endDate = new Date()
+      endDate.setMonth(endDate.getMonth() + 2) // Sync next 2 months
+
+      const response = await fetch('/api/calendar/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Don't show error for no calendar connections
+        if (data.error === 'No calendar connections found') {
+          return
+        }
+        throw new Error(data.error || 'Failed to sync calendar')
+      }
+
+      // Only show toast for manual syncs and when tasks are actually added
+      if (isManualSync && data.syncedTasks?.length > 0) {
+        toast({
+          title: "Calendar synced",
+          description: `Successfully synced ${data.syncedTasks.length} tasks`,
+        })
+      }
+    } catch (error: any) {
+      console.error('Calendar sync error:', error)
+      // Only show error toast for manual syncs
+      if (isManualSync) {
+        toast({
+          title: "Sync failed",
+          description: error.message || 'Failed to sync calendar',
+          variant: "destructive",
+        })
+      }
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  // Set up background sync
+  useEffect(() => {
+    // Initial sync when component mounts
+    syncCalendar(false)
+
+    // Set up hourly background sync
+    const syncInterval = setInterval(() => {
+      syncCalendar(false)
+    }, 60 * 60 * 1000) // Every hour
+
+    // Cleanup interval on unmount
+    return () => clearInterval(syncInterval)
+  }, []) // Empty dependency array means this only runs on mount/unmount
+
   return (
     <div className="max-w-5xl mx-auto p-2 lg:p-2">
       <div className="flex items-center justify-between mb-4 lg:mb-6">
@@ -185,6 +255,15 @@ export function CalendarView() {
         >
           Calendar
         </motion.h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => syncCalendar(true)}
+          disabled={isSyncing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+          {isSyncing ? 'Syncing...' : 'Sync Calendar'}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 w-full">

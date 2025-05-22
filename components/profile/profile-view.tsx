@@ -14,6 +14,8 @@ import { useTheme } from "next-themes"
 import { useApp } from "@/context/app-context"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { toast } from "react-hot-toast"
+import { CalendarIntegration } from "@/components/settings/calendar-integration"
+import { TaskPreferences } from "@/components/settings/task-preferences"
 
 export function ProfileView() {
   const [isEditing, setIsEditing] = useState(false)
@@ -337,60 +339,65 @@ export function ProfileView() {
               </TabsContent>
 
               <TabsContent value="settings">
-                <Card className="glass-morphism">
-                  <CardHeader>
-                    <CardTitle className="dark:text-white">App Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base dark:text-white">Dark Mode</Label>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Switch between light and dark themes
-                          </p>
+                <div className="space-y-6">
+                  <Card className="glass-morphism">
+                    <CardHeader>
+                      <CardTitle className="dark:text-white">App Settings</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base dark:text-white">Dark Mode</Label>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Switch between light and dark themes
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Moon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                            <Switch
+                              checked={theme === "dark"}
+                              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Moon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                          <Switch
-                            checked={theme === "dark"}
-                            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-                          />
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base dark:text-white">Email Notifications</Label>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Receive email notifications for important updates
-                          </p>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base dark:text-white">Email Notifications</Label>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Receive email notifications for important updates
+                            </p>
+                          </div>
+                          <Switch defaultChecked />
                         </div>
-                        <Switch defaultChecked />
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base dark:text-white">Push Notifications</Label>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Receive push notifications for task reminders
-                          </p>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base dark:text-white">Push Notifications</Label>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Receive push notifications for task reminders
+                            </p>
+                          </div>
+                          <Switch defaultChecked />
                         </div>
-                        <Switch defaultChecked />
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base dark:text-white">Sound Effects</Label>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Play sound effects for notifications and actions
-                          </p>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base dark:text-white">Sound Effects</Label>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Play sound effects for notifications and actions
+                            </p>
+                          </div>
+                          <Switch />
                         </div>
-                        <Switch />
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+
+                  <TaskPreferences />
+                  <CalendarIntegration />
+                </div>
               </TabsContent>
 
               <TabsContent value="academic">

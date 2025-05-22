@@ -22,6 +22,7 @@ import { Droppable, Draggable } from '@hello-pangea/dnd'
 import { TaskCard } from './TaskCard'
 import type { Task } from "@/lib/data"
 import { parseISO, isBefore, addHours } from "date-fns"
+import { updateTask } from '@/lib/task-operations'
 
 interface TaskColumnProps {
   id: string
@@ -44,13 +45,17 @@ export function TaskColumn({
   onDeleteTask,
   typeColors,
   getTaskTypeColors,
-  classes
+  classes,
 }: TaskColumnProps) {
   // Group tasks
-  const now = new Date();
-  const overdue = tasks.filter(task => task.date && isBefore(parseISO(task.date), now) && task.status !== 'done');
-  const dueSoon = tasks.filter(task => task.date && !isBefore(parseISO(task.date), now) && isBefore(parseISO(task.date), addHours(now, 24)) && task.status !== 'done');
-  const normal = tasks.filter(task => !overdue.includes(task) && !dueSoon.includes(task));
+  const now = new Date()
+
+  // Filter out archived tasks
+  const filteredTasks = tasks.filter(task => !task.archived)
+
+  const overdue = filteredTasks.filter(task => task.date && isBefore(parseISO(task.date), now) && task.status !== 'done')
+  const dueSoon = filteredTasks.filter(task => task.date && !isBefore(parseISO(task.date), now) && isBefore(parseISO(task.date), addHours(now, 24)) && task.status !== 'done')
+  const normal = filteredTasks.filter(task => !overdue.includes(task) && !dueSoon.includes(task))
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 shadow-lg">
